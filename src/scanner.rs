@@ -151,7 +151,7 @@ impl Scanner {
             // Skip comments
             if curr == '/' && next == Some('/') {
                 // Consume iterator until newline
-                while let Some((_, next)) = self.next() {
+                for (_, next) in self.by_ref() {
                     if next == Some('\n') {
                         break;
                     }
@@ -211,7 +211,7 @@ impl Scanner {
             if curr.is_alphabetic() {
                 let mut identifier = String::from(curr);
                 if next.is_some_and(|n| n.is_alphanumeric()) {
-                    while let Some((curr, next)) = self.next() {
+                    for (curr, next) in self.by_ref() {
                         identifier.push(curr);
                         if !next.is_some_and(|n|n.is_alphanumeric()) {
                             break;
@@ -251,7 +251,7 @@ impl Scanner {
             if curr.is_numeric() {
                 let mut number = String::from(curr);
                 if next.is_some_and(|n| n.is_numeric() || n == '.') {
-                    while let Some((curr, next)) = self.next() {
+                    for (curr, next) in self.by_ref() {
                         number.push(curr);
                         if !next.is_some_and(|n|n.is_numeric() || n == '.') {
                             break;
