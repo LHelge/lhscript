@@ -1,53 +1,5 @@
-#[derive(Debug, PartialEq)]
-pub enum Token {
-    // Single character tokens
-    LeftParenthesis,
-    RightParenthesis,
-    LeftBrace,
-    RightBrace,
-    Comma,
-    Dot,
-    Minus,
-    Plus,
-    Semicolon,
-    Slash,
-    Star,
-
-    // One or two character tokens
-    Bang,
-    BangEqual,
-    Equal,
-    EqualEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-
-    //Literals
-    Identifier(String),
-    String(String),
-    Number(f64),
-
-    // Keywords
-    And,
-    Class,
-    Else,
-    False,
-    Fn,
-    For,
-    If,
-    Null,
-    Or,
-    Print,
-    Return,
-    Super,
-    This,
-    True,
-    Let,
-    While,
-
-    Eof,
-}
+use crate::token::*;
+use std::{error::Error, fmt::Display};
 
 #[derive(Debug)]
 pub enum ScannerError {
@@ -55,12 +7,16 @@ pub enum ScannerError {
     NumberLiteralParsingError(usize, usize),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct TokenMetadata {
-    pub token: Token,
-    pub line: usize,
-    pub column: usize,
+impl Display for ScannerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnexpectedToken(line, column) => write!(f, "Unexpected token at position {}:{}", line, column),
+            Self::NumberLiteralParsingError(line, column) => write!(f, "Error parsing number litteral at position {}:{}", line, column),
+        }
+    }
 }
+
+impl Error for ScannerError {}
 
 /// Scanner is an iterator object over a vector of characters making up the code of the script
 struct Scanner {

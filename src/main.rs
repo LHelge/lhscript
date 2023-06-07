@@ -14,6 +14,8 @@ use error::ScriptError;
 mod scanner;
 use scanner::*;
 
+mod token;
+
 #[derive(Debug, clap::Parser)]
 #[command(author, version, about, long_about=None)]
 struct Args {
@@ -73,7 +75,7 @@ fn run_prompt(mut context: Context) -> Result<Context, ScriptError> {
 fn run(script: &str, mut context: Context) -> Result<Context, ScriptError> {
     // TODO: parse
 
-    let tokens = script.tokens().expect("error");
+    let tokens = script.tokens()?;
 
     for (index, token) in tokens.into_iter().enumerate() {
         println!("{}: {:?}", index, token);
