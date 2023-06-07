@@ -50,7 +50,10 @@ pub enum Token {
 }
 
 #[derive(Debug)]
-pub enum ScannerError {}
+pub enum ScannerError {
+    UnexpectedToken(usize, usize),
+    NumberLiteralParsingError(usize, usize),
+}
 
 #[derive(Debug, PartialEq)]
 pub struct TokenMetadata {
@@ -59,14 +62,44 @@ pub struct TokenMetadata {
     pub column: usize,
 }
 
-pub struct Scanner {
+/// Scanner is an iterator object over a vector of characters making up the code of the script
+struct Scanner {
+    /// A vector of characters containing the code of the script
     code: Vec<char>,
+
+    /// Current position in the vector
     current: usize,
+
+    /// Current line of code
     line: usize,
+
+    /// Current column of code
     column: usize,
 }
 
+/// Make the scanner object into an iterator over a 2-character window with next being an Option<char>
+impl Iterator for Scanner {
+    type Item = (char, Option<char>);
+
+    /// Get next window of the current character and an Option<char> of the next character
+    fn next(&mut self) -> Option<Self::Item> {
+        // TODO: Is there a nicer way to dereference Option<&char> to Option<char> ?
+        if let Some(&curr) = self.code.get(self.current) {
+            self.advance();
+
+            if let Some(&next) = self.code.get(self.current) {
+                Some((curr, Some(next)))
+            } else {
+                Some((curr, None))
+            }
+        } else {
+            None
+        }
+    }
+}
+
 impl Scanner {
+    /// Create new scanner based on a &str of code
     fn new(code: &str) -> Self {
         Scanner {
             code: code.chars().collect(),
@@ -76,48 +109,33 @@ impl Scanner {
         }
     }
 
+    /// Reset scanner to the start of the code
     fn reset(&mut self) {
         self.current = 0;
         self.line = 1;
         self.column = 0;
     }
 
+    /// Advance one step without getting the iterator output from self.next()
     fn advance(&mut self) {
-        // -> Option<char, Option<char>> {
         self.current += 1;
         self.column += 1;
     }
 
+    /// Newline and return column to zero
     fn newline(&mut self) {
         self.line += 1;
         self.column = 0;
     }
 
-    fn current(&self) -> Option<char> {
-        if let Some(&c) = self.code.get(self.current) {
-            Some(c)
-        } else {
-            None
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        if let Some(&c) = self.code.get(self.current + 1) {
-            Some(c)
-        } else {
-            None
-        }
-    }
-
-    pub fn tokens(&mut self) -> Result<Vec<TokenMetadata>, ScannerError> {
+    /// Parse all tokens from the underlaying vector of characters
+    fn tokens(&mut self) -> Result<Vec<TokenMetadata>, ScannerError> {
         self.reset();
 
         let mut tokens: Vec<TokenMetadata> = vec![];
 
-        while let Some(curr) = self.current() {
-            let mut next = self.peek();
-
-            self.advance();
+        while let Some((curr, next)) = self.next() {
+            let (line, column) = (self.line, self.column);
 
             // Newline
             if curr == '\n' {
@@ -132,9 +150,11 @@ impl Scanner {
 
             // Skip comments
             if curr == '/' && next == Some('/') {
-                while next.is_some_and(|n| n != '\n') {
-                    next = self.peek();
-                    self.advance();
+                // Consume iterator until newline
+                while let Some((_, next)) = self.next() {
+                    if next == Some('\n') {
+                        break;
+                    }
                 }
                 continue;
             }
@@ -156,9 +176,10 @@ impl Scanner {
             } {
                 tokens.push(TokenMetadata {
                     token,
-                    line: self.line,
-                    column: self.column,
+                    line,
+                    column,
                 });
+                continue;
             }
 
             // One or two character
@@ -175,25 +196,27 @@ impl Scanner {
             } {
                 tokens.push(TokenMetadata {
                     token,
-                    line: self.line,
-                    column: self.column,
+                    line,
+                    column,
                 });
 
                 // Advance one extra step if two characters
                 if next == Some('=') {
                     self.advance();
                 }
+                continue;
             }
 
             // Keywords and identifiers
             if curr.is_alphabetic() {
-                let (line, column) = (self.line, self.column);
-
                 let mut identifier = String::from(curr);
-                while next.is_some_and(|n| n.is_alphanumeric()) {
-                    identifier.push(next.unwrap());
-                    next = self.peek();
-                    self.advance();
+                if next.is_some_and(|n| n.is_alphanumeric()) {
+                    while let Some((curr, next)) = self.next() {
+                        identifier.push(curr);
+                        if !next.is_some_and(|n|n.is_alphanumeric()) {
+                            break;
+                        }
+                    }
                 }
 
                 let token = match identifier.as_str() {
@@ -221,46 +244,60 @@ impl Scanner {
                     line,
                     column,
                 });
+                continue;
             }
 
-            // Numbers
+            // Number litterals
             if curr.is_numeric() {
-                let (line, column) = (self.line, self.column);
-
                 let mut number = String::from(curr);
-                while next.is_some_and(|n| n.is_numeric() || n == '.') {
-                    number.push(next.unwrap());
-                    next = self.peek();
-                    self.advance();
+                if next.is_some_and(|n| n.is_numeric() || n == '.') {
+                    while let Some((curr, next)) = self.next() {
+                        number.push(curr);
+                        if !next.is_some_and(|n|n.is_numeric() || n == '.') {
+                            break;
+                        }
+                    }
                 }
 
-                tokens.push(TokenMetadata {
-                    token: Token::Number(number.parse().unwrap()),
-                    line,
-                    column,
-                });
+                if let Ok(number) = number.parse() {
+                    tokens.push(TokenMetadata {
+                        token: Token::Number(number),
+                        line,
+                        column,
+                    });
+                }
+                else {
+                    return Err(ScannerError::NumberLiteralParsingError(line, column));
+                }
+                continue;
             }
 
             // String Litterals
             if curr == '"' {
                 let (line, column) = (self.line, self.column);
 
-                let mut string = String::new();
-                while next.is_some_and(|n| n != '"') {
-                    string.push(next.unwrap());
-                    next = self.peek();
-                    self.advance();
-                }
+                // TODO: Add support for escape characters like '\n', '\\' or '\"' 
+                // TODO: Error on newline in string
 
-                // Skip final quote
-                self.advance();
+                let mut string = String::new();
+                while let Some((curr, next)) = self.next() {
+                    string.push(curr);
+                    if next == Some('"') {
+                        self.advance();
+                        break;
+                    }
+                }
 
                 tokens.push(TokenMetadata {
                     token: Token::String(string),
                     line,
                     column,
                 });
+
+                continue;
             }
+
+            return Err(ScannerError::UnexpectedToken(line, column));
         }
 
         tokens.push(TokenMetadata {
@@ -272,11 +309,14 @@ impl Scanner {
     }
 }
 
+/// Scannable trait can be put on enything that can be converted to a string of code
 pub trait Scannable {
     fn tokens(&self) -> Result<Vec<TokenMetadata>, ScannerError>;
 }
 
+/// Implement scannable for &str
 impl Scannable for &str {
+    /// Scan a string of code for tokens
     fn tokens(&self) -> Result<Vec<TokenMetadata>, ScannerError> {
         let mut scanner = Scanner::new(self);
         scanner.tokens()
