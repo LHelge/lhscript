@@ -5,13 +5,15 @@ use std::{error::Error, fmt::Display};
 pub enum ScannerError {
     UnexpectedToken(Position),
     NumberLiteralParsingError(Position),
+    UnterminatedMultilineComment(Position),
 }
 
 impl Display for ScannerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UnexpectedToken(position) => write!(f, "Unexpected token at position {}", position),
-            Self::NumberLiteralParsingError(position) => write!(f, "Error parsing number Positionposition {}", position),
+            Self::UnexpectedToken(position) => write!(f, "Unexpected token at {}", position),
+            Self::NumberLiteralParsingError(position) => write!(f, "Error parsing number at {}", position),
+            Self::UnterminatedMultilineComment(position) => write!(f, "Unterminated multiline comment at {}", position),
         }
     }
 }
@@ -94,13 +96,27 @@ impl Scanner {
     }
 
     /// Scan a single line comment from current position
-    fn scan_line_comment(&mut self) {
+    fn scan_line_comment(&mut self) -> Result<(),ScannerError> {
         // Consume iterator until newline
         for (_, next) in self.by_ref() {
             if next == Some('\n') {
                 break;
             }
         }
+        Ok(())
+    }
+
+    fn scan_multiline_comment(&mut self) -> Result<(), ScannerError> {
+        // Consume iterator until newline
+        while let Some((curr, next)) = self.next() {
+            match (curr, next) {
+                ('\n', _) => self.newline(),
+                ('*', Some('/')) => {self.advance(); break},
+                (_, None) => return Err(ScannerError::UnterminatedMultilineComment(self.position)),
+                _ => {}
+            }
+        }
+        Ok(())
     }
 
     /// Scan a number literal from current position
@@ -189,7 +205,8 @@ impl Scanner {
                 _ if curr.is_whitespace()   => None,
 
                 // Comments
-                ('/', Some('/'))            => {self.scan_line_comment(); None},
+                ('/', Some('/')) => {self.scan_line_comment()?; None},
+                ('/', Some('*')) => {self.scan_multiline_comment()?; None}
 
                 // Single character tokens
                 ('(', _) => Some(Token::LeftParenthesis),
@@ -232,10 +249,13 @@ impl Scanner {
             }
         }
 
+        // Add Eof-token
+        self.advance();
         tokens.push(TokenMetadata {
             token: Token::Eof,
             position: self.position,
         });
+
         Ok(tokens)
     }
 }
@@ -259,19 +279,9 @@ mod tests {
     use super::*;
 
     fn test_tokens() -> Vec<TokenMetadata> {
-        r#"
-// Single character tokens
-(){},.-+;/*
-// One or two character tokens
-! != = == > >= < <=
-// Literals
-let greeting = "hello";
-let fraction = 0.5;
-let integer = 123;
-// Keywords
-and class else false fn for if null or print return super this true let while
-"#
-            .tokens()
+        std::fs::read_to_string("test.lhscript")
+            .unwrap()
+            .as_str().tokens()
             .unwrap()
     }
 
@@ -279,31 +289,31 @@ and class else false fn for if null or print return super this true let while
     fn single_character_tokens() {
         let tokens = test_tokens();
 
-        assert_eq!(tokens[0],  TokenMetadata {token: Token::LeftParenthesis,  position: Position {line: 3, column:  1}});
-        assert_eq!(tokens[1],  TokenMetadata {token: Token::RightParenthesis, position: Position {line: 3, column:  2}});
-        assert_eq!(tokens[2],  TokenMetadata {token: Token::LeftBrace,        position: Position {line: 3, column:  3}});
-        assert_eq!(tokens[3],  TokenMetadata {token: Token::RightBrace,       position: Position {line: 3, column:  4}});
-        assert_eq!(tokens[4],  TokenMetadata {token: Token::Comma,            position: Position {line: 3, column:  5}});
-        assert_eq!(tokens[5],  TokenMetadata {token: Token::Dot,              position: Position {line: 3, column:  6}});
-        assert_eq!(tokens[6],  TokenMetadata {token: Token::Minus,            position: Position {line: 3, column:  7}});
-        assert_eq!(tokens[7],  TokenMetadata {token: Token::Plus,             position: Position {line: 3, column:  8}});
-        assert_eq!(tokens[8],  TokenMetadata {token: Token::Semicolon,        position: Position {line: 3, column:  9}});
-        assert_eq!(tokens[9],  TokenMetadata {token: Token::Slash,            position: Position {line: 3, column: 10}});
-        assert_eq!(tokens[10], TokenMetadata {token: Token::Star,             position: Position {line: 3, column: 11}});
+        assert_eq!(tokens[0],  TokenMetadata {token: Token::LeftParenthesis,  position: Position {line: 2, column:  1}});
+        assert_eq!(tokens[1],  TokenMetadata {token: Token::RightParenthesis, position: Position {line: 2, column:  2}});
+        assert_eq!(tokens[2],  TokenMetadata {token: Token::LeftBrace,        position: Position {line: 2, column:  3}});
+        assert_eq!(tokens[3],  TokenMetadata {token: Token::RightBrace,       position: Position {line: 2, column:  4}});
+        assert_eq!(tokens[4],  TokenMetadata {token: Token::Comma,            position: Position {line: 2, column:  5}});
+        assert_eq!(tokens[5],  TokenMetadata {token: Token::Dot,              position: Position {line: 2, column:  6}});
+        assert_eq!(tokens[6],  TokenMetadata {token: Token::Minus,            position: Position {line: 2, column:  7}});
+        assert_eq!(tokens[7],  TokenMetadata {token: Token::Plus,             position: Position {line: 2, column:  8}});
+        assert_eq!(tokens[8],  TokenMetadata {token: Token::Semicolon,        position: Position {line: 2, column:  9}});
+        assert_eq!(tokens[9],  TokenMetadata {token: Token::Star,             position: Position {line: 2, column: 10}});
+        assert_eq!(tokens[10], TokenMetadata {token: Token::Slash,            position: Position {line: 2, column: 11}});
     }
 
     #[test]
     fn one_or_two_character_tokens() {
         let tokens = test_tokens();
 
-        assert_eq!(tokens[11], TokenMetadata {token: Token::Bang,         position: Position {line: 5, column:  1}});
-        assert_eq!(tokens[12], TokenMetadata {token: Token::BangEqual,    position: Position {line: 5, column:  3}});
-        assert_eq!(tokens[13], TokenMetadata {token: Token::Equal,        position: Position {line: 5, column:  6}});
-        assert_eq!(tokens[14], TokenMetadata {token: Token::EqualEqual,   position: Position {line: 5, column:  8}});
-        assert_eq!(tokens[15], TokenMetadata {token: Token::Greater,      position: Position {line: 5, column: 11}});
-        assert_eq!(tokens[16], TokenMetadata {token: Token::GreaterEqual, position: Position {line: 5, column: 13}});
-        assert_eq!(tokens[17], TokenMetadata {token: Token::Less,         position: Position {line: 5, column: 16}});
-        assert_eq!(tokens[18], TokenMetadata {token: Token::LessEqual,    position: Position {line: 5, column: 18}});
+        assert_eq!(tokens[11], TokenMetadata {token: Token::Bang,         position: Position {line: 4, column:  1}});
+        assert_eq!(tokens[12], TokenMetadata {token: Token::BangEqual,    position: Position {line: 4, column:  3}});
+        assert_eq!(tokens[13], TokenMetadata {token: Token::Equal,        position: Position {line: 4, column:  6}});
+        assert_eq!(tokens[14], TokenMetadata {token: Token::EqualEqual,   position: Position {line: 4, column:  8}});
+        assert_eq!(tokens[15], TokenMetadata {token: Token::Greater,      position: Position {line: 4, column: 11}});
+        assert_eq!(tokens[16], TokenMetadata {token: Token::GreaterEqual, position: Position {line: 4, column: 13}});
+        assert_eq!(tokens[17], TokenMetadata {token: Token::Less,         position: Position {line: 4, column: 16}});
+        assert_eq!(tokens[18], TokenMetadata {token: Token::LessEqual,    position: Position {line: 4, column: 18}});
     }
 
     #[test]
@@ -311,16 +321,16 @@ and class else false fn for if null or print return super this true let while
         let tokens = test_tokens();
 
         // Identifiers
-        assert_eq!(tokens[20], TokenMetadata {token: Token::Identifier(String::from("greeting")), position: Position {line: 7, column: 5}});
-        assert_eq!(tokens[25], TokenMetadata {token: Token::Identifier(String::from("fraction")), position: Position {line: 8, column: 5}});
-        assert_eq!(tokens[30], TokenMetadata {token: Token::Identifier(String::from("integer")),  position: Position {line: 9, column: 5}});
+        assert_eq!(tokens[20], TokenMetadata {token: Token::Identifier(String::from("greeting")), position: Position {line: 6, column: 5}});
+        assert_eq!(tokens[25], TokenMetadata {token: Token::Identifier(String::from("fraction")), position: Position {line: 7, column: 5}});
+        assert_eq!(tokens[30], TokenMetadata {token: Token::Identifier(String::from("integer")),  position: Position {line: 8, column: 5}});
 
         // String literal
-        assert_eq!(tokens[22], TokenMetadata {token: Token::String(String::from("hello")), position: Position {line: 7, column: 16}});
+        assert_eq!(tokens[22], TokenMetadata {token: Token::String(String::from("hello")), position: Position {line: 6, column: 16}});
 
         // Numbers
-        assert_eq!(tokens[27], TokenMetadata {token: Token::Number(0.5f64), position: Position {line: 8, column: 16}});
-        assert_eq!(tokens[32], TokenMetadata {token: Token::Number(123f64), position: Position {line: 9, column: 15}});
+        assert_eq!(tokens[27], TokenMetadata {token: Token::Number(0.5f64), position: Position {line: 7, column: 16}});
+        assert_eq!(tokens[32], TokenMetadata {token: Token::Number(123f64), position: Position {line: 8, column: 15}});
     }
 
     #[test]
@@ -350,7 +360,13 @@ and class else false fn for if null or print return super this true let while
     fn eof() {
         let tokens = test_tokens();
 
-        assert_eq!(tokens.last(), Some(&TokenMetadata {token: Token::Eof, position: Position {line: 12, column: 0}}));
+        assert_eq!(tokens.last(), Some(&TokenMetadata {token: Token::Eof, position: Position {line: 11, column: 78}}));
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_multiline() {
+        let _tokens = "/* Bad multiline comment without termination".tokens().unwrap();
     }
 
 }

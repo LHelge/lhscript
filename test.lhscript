@@ -1,7 +1,11 @@
-let a = 12;
-let b = 2;
-let c = 1.4;
-let d = -3.14; // Negative PI
-print (a+b+c+d);
-
-let linus = "Hello World";
+// Single character tokens
+(){},.-+;*/
+// One or two character tokens
+! != = == > >= < <=
+/* Literals */
+let greeting = "hello";
+let fraction = 0.5;
+let integer = 123;
+/* Keywords com after
+   this multiline comment */
+and class else false fn for if null or print return super this true let while
