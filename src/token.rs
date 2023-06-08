@@ -11,9 +11,11 @@ pub enum Token {
     Dot,
     Minus,
     Plus,
+    Colon,
     Semicolon,
     Slash,
     Star,
+    Question,
 
     // One or two character tokens
     Bang,
@@ -24,6 +26,8 @@ pub enum Token {
     GreaterEqual,
     Less,
     LessEqual,
+    And,
+    Or,
 
     //Literals
     Identifier(String),
@@ -31,7 +35,6 @@ pub enum Token {
     Number(f64),
 
     // Keywords
-    And,
     Class,
     Else,
     False,
@@ -39,7 +42,6 @@ pub enum Token {
     For,
     If,
     Null,
-    Or,
     Print,
     Return,
     Super,

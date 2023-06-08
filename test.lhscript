@@ -1,11 +1,11 @@
 // Single character tokens
-(){},.-+;*/
+(){},.-+:;*/?
 // One or two character tokens
-! != = == > >= < <=
+! != = == > >= < <= && ||
 /* Literals */
 let greeting = "hello";
 let fraction = 0.5;
 let integer = 123;
 /* Keywords com after
    this multiline comment */
-and class else false fn for if null or print return super this true let while
+class else false fn for if null print return super this true let while

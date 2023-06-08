@@ -168,7 +168,6 @@ impl Scanner {
 
         // This is the list of reserved keywords
         Ok(match identifier.as_str() {
-            "and" => Token::And,
             "class" => Token::Class,
             "else" => Token::Else,
             "false" => Token::False,
@@ -176,7 +175,6 @@ impl Scanner {
             "for" => Token::For,
             "if" => Token::If,
             "null" => Token::Null,
-            "or" => Token::Or,
             "print" => Token::Print,
             "return" => Token::Return,
             "super" => Token::Super,
@@ -217,15 +215,19 @@ impl Scanner {
                 ('.', _) => Some(Token::Dot),
                 ('-', _) => Some(Token::Minus),
                 ('+', _) => Some(Token::Plus),
+                (':', _) => Some(Token::Colon),
                 (';', _) => Some(Token::Semicolon),
                 ('/', _) => Some(Token::Slash),
                 ('*', _) => Some(Token::Star),
+                ('?', _) => Some(Token::Question),
 
                 // One or two character tokens
                 ('!', Some('=')) => { self.advance(); Some(Token::BangEqual)},
                 ('=', Some('=')) => { self.advance(); Some(Token::EqualEqual)},
                 ('>', Some('=')) => { self.advance(); Some(Token::GreaterEqual)},
                 ('<', Some('=')) => { self.advance(); Some(Token::LessEqual)},
+                ('&', Some('&')) => { self.advance(); Some(Token::And)},
+                ('|', Some('|')) => { self.advance(); Some(Token::Or)},
                 ('!', _) => Some(Token::Bang),
                 ('=', _) => Some(Token::Equal),
                 ('>', _) => Some(Token::Greater),
@@ -297,23 +299,27 @@ mod tests {
         assert_eq!(tokens[5],  TokenMetadata {token: Token::Dot,              position: Position {line: 2, column:  6}});
         assert_eq!(tokens[6],  TokenMetadata {token: Token::Minus,            position: Position {line: 2, column:  7}});
         assert_eq!(tokens[7],  TokenMetadata {token: Token::Plus,             position: Position {line: 2, column:  8}});
-        assert_eq!(tokens[8],  TokenMetadata {token: Token::Semicolon,        position: Position {line: 2, column:  9}});
-        assert_eq!(tokens[9],  TokenMetadata {token: Token::Star,             position: Position {line: 2, column: 10}});
-        assert_eq!(tokens[10], TokenMetadata {token: Token::Slash,            position: Position {line: 2, column: 11}});
+        assert_eq!(tokens[8],  TokenMetadata {token: Token::Colon,            position: Position {line: 2, column:  9}});
+        assert_eq!(tokens[9],  TokenMetadata {token: Token::Semicolon,        position: Position {line: 2, column: 10}});
+        assert_eq!(tokens[10], TokenMetadata {token: Token::Star,             position: Position {line: 2, column: 11}});
+        assert_eq!(tokens[11], TokenMetadata {token: Token::Slash,            position: Position {line: 2, column: 12}});
+        assert_eq!(tokens[12], TokenMetadata {token: Token::Question,         position: Position {line: 2, column: 13}});
     }
 
     #[test]
     fn one_or_two_character_tokens() {
         let tokens = test_tokens();
 
-        assert_eq!(tokens[11], TokenMetadata {token: Token::Bang,         position: Position {line: 4, column:  1}});
-        assert_eq!(tokens[12], TokenMetadata {token: Token::BangEqual,    position: Position {line: 4, column:  3}});
-        assert_eq!(tokens[13], TokenMetadata {token: Token::Equal,        position: Position {line: 4, column:  6}});
-        assert_eq!(tokens[14], TokenMetadata {token: Token::EqualEqual,   position: Position {line: 4, column:  8}});
-        assert_eq!(tokens[15], TokenMetadata {token: Token::Greater,      position: Position {line: 4, column: 11}});
-        assert_eq!(tokens[16], TokenMetadata {token: Token::GreaterEqual, position: Position {line: 4, column: 13}});
-        assert_eq!(tokens[17], TokenMetadata {token: Token::Less,         position: Position {line: 4, column: 16}});
-        assert_eq!(tokens[18], TokenMetadata {token: Token::LessEqual,    position: Position {line: 4, column: 18}});
+        assert_eq!(tokens[13], TokenMetadata {token: Token::Bang,         position: Position {line: 4, column:  1}});
+        assert_eq!(tokens[14], TokenMetadata {token: Token::BangEqual,    position: Position {line: 4, column:  3}});
+        assert_eq!(tokens[15], TokenMetadata {token: Token::Equal,        position: Position {line: 4, column:  6}});
+        assert_eq!(tokens[16], TokenMetadata {token: Token::EqualEqual,   position: Position {line: 4, column:  8}});
+        assert_eq!(tokens[17], TokenMetadata {token: Token::Greater,      position: Position {line: 4, column: 11}});
+        assert_eq!(tokens[18], TokenMetadata {token: Token::GreaterEqual, position: Position {line: 4, column: 13}});
+        assert_eq!(tokens[19], TokenMetadata {token: Token::Less,         position: Position {line: 4, column: 16}});
+        assert_eq!(tokens[20], TokenMetadata {token: Token::LessEqual,    position: Position {line: 4, column: 18}});
+        assert_eq!(tokens[21], TokenMetadata {token: Token::And,          position: Position {line: 4, column: 21}});
+        assert_eq!(tokens[22], TokenMetadata {token: Token::Or,           position: Position {line: 4, column: 24}});
     }
 
     #[test]
@@ -321,16 +327,16 @@ mod tests {
         let tokens = test_tokens();
 
         // Identifiers
-        assert_eq!(tokens[20], TokenMetadata {token: Token::Identifier(String::from("greeting")), position: Position {line: 6, column: 5}});
-        assert_eq!(tokens[25], TokenMetadata {token: Token::Identifier(String::from("fraction")), position: Position {line: 7, column: 5}});
-        assert_eq!(tokens[30], TokenMetadata {token: Token::Identifier(String::from("integer")),  position: Position {line: 8, column: 5}});
+        assert_eq!(tokens[24], TokenMetadata {token: Token::Identifier(String::from("greeting")), position: Position {line: 6, column: 5}});
+        assert_eq!(tokens[29], TokenMetadata {token: Token::Identifier(String::from("fraction")), position: Position {line: 7, column: 5}});
+        assert_eq!(tokens[34], TokenMetadata {token: Token::Identifier(String::from("integer")),  position: Position {line: 8, column: 5}});
 
         // String literal
-        assert_eq!(tokens[22], TokenMetadata {token: Token::String(String::from("hello")), position: Position {line: 6, column: 16}});
+        assert_eq!(tokens[26], TokenMetadata {token: Token::String(String::from("hello")), position: Position {line: 6, column: 16}});
 
         // Numbers
-        assert_eq!(tokens[27], TokenMetadata {token: Token::Number(0.5f64), position: Position {line: 7, column: 16}});
-        assert_eq!(tokens[32], TokenMetadata {token: Token::Number(123f64), position: Position {line: 8, column: 15}});
+        assert_eq!(tokens[31], TokenMetadata {token: Token::Number(0.5f64), position: Position {line: 7, column: 16}});
+        assert_eq!(tokens[36], TokenMetadata {token: Token::Number(123f64), position: Position {line: 8, column: 15}});
     }
 
     #[test]
@@ -338,29 +344,27 @@ mod tests {
         let tokens = test_tokens();
 
         // Identifiers
-        assert_eq!(tokens[34], TokenMetadata {token: Token::And,    position: Position {line: 11, column: 1}});
-        assert_eq!(tokens[35], TokenMetadata {token: Token::Class,  position: Position {line: 11, column: 5}});
-        assert_eq!(tokens[36], TokenMetadata {token: Token::Else,   position: Position {line: 11, column: 11}});
-        assert_eq!(tokens[37], TokenMetadata {token: Token::False,  position: Position {line: 11, column: 16}});
-        assert_eq!(tokens[38], TokenMetadata {token: Token::Fn,     position: Position {line: 11, column: 22}});
-        assert_eq!(tokens[39], TokenMetadata {token: Token::For,    position: Position {line: 11, column: 25}});
-        assert_eq!(tokens[40], TokenMetadata {token: Token::If,     position: Position {line: 11, column: 29}});
-        assert_eq!(tokens[41], TokenMetadata {token: Token::Null,   position: Position {line: 11, column: 32}});
-        assert_eq!(tokens[42], TokenMetadata {token: Token::Or,     position: Position {line: 11, column: 37}});
-        assert_eq!(tokens[43], TokenMetadata {token: Token::Print,  position: Position {line: 11, column: 40}});
-        assert_eq!(tokens[44], TokenMetadata {token: Token::Return, position: Position {line: 11, column: 46}});
-        assert_eq!(tokens[45], TokenMetadata {token: Token::Super,  position: Position {line: 11, column: 53}});
-        assert_eq!(tokens[46], TokenMetadata {token: Token::This,   position: Position {line: 11, column: 59}});
-        assert_eq!(tokens[47], TokenMetadata {token: Token::True,   position: Position {line: 11, column: 64}});
-        assert_eq!(tokens[48], TokenMetadata {token: Token::Let,    position: Position {line: 11, column: 69}});
-        assert_eq!(tokens[49], TokenMetadata {token: Token::While,  position: Position {line: 11, column: 73}});
+        assert_eq!(tokens[38], TokenMetadata {token: Token::Class,  position: Position {line: 11, column: 1}});
+        assert_eq!(tokens[39], TokenMetadata {token: Token::Else,   position: Position {line: 11, column: 7}});
+        assert_eq!(tokens[40], TokenMetadata {token: Token::False,  position: Position {line: 11, column: 12}});
+        assert_eq!(tokens[41], TokenMetadata {token: Token::Fn,     position: Position {line: 11, column: 18}});
+        assert_eq!(tokens[42], TokenMetadata {token: Token::For,    position: Position {line: 11, column: 21}});
+        assert_eq!(tokens[43], TokenMetadata {token: Token::If,     position: Position {line: 11, column: 25}});
+        assert_eq!(tokens[44], TokenMetadata {token: Token::Null,   position: Position {line: 11, column: 28}});
+        assert_eq!(tokens[45], TokenMetadata {token: Token::Print,  position: Position {line: 11, column: 33}});
+        assert_eq!(tokens[46], TokenMetadata {token: Token::Return, position: Position {line: 11, column: 39}});
+        assert_eq!(tokens[47], TokenMetadata {token: Token::Super,  position: Position {line: 11, column: 46}});
+        assert_eq!(tokens[48], TokenMetadata {token: Token::This,   position: Position {line: 11, column: 52}});
+        assert_eq!(tokens[49], TokenMetadata {token: Token::True,   position: Position {line: 11, column: 57}});
+        assert_eq!(tokens[50], TokenMetadata {token: Token::Let,    position: Position {line: 11, column: 62}});
+        assert_eq!(tokens[51], TokenMetadata {token: Token::While,  position: Position {line: 11, column: 66}});
     }
 
     #[test]
     fn eof() {
         let tokens = test_tokens();
 
-        assert_eq!(tokens.last(), Some(&TokenMetadata {token: Token::Eof, position: Position {line: 11, column: 78}}));
+        assert_eq!(tokens.last(), Some(&TokenMetadata {token: Token::Eof, position: Position {line: 11, column: 71}}));
     }
 
     #[test]
