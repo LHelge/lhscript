@@ -1,3 +1,5 @@
+use crate::scanner::Position;
+
 #[derive(Debug, PartialEq)]
 pub enum Token {
     // Single character tokens
@@ -53,6 +55,5 @@ pub enum Token {
 #[derive(Debug, PartialEq)]
 pub struct TokenMetadata {
     pub token: Token,
-    pub line: usize,
-    pub column: usize,
+    pub position: Position,
 }
