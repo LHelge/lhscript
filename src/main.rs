@@ -16,6 +16,8 @@ use scanner::*;
 
 mod token;
 
+mod expression;
+
 #[derive(Debug, clap::Parser)]
 #[command(author, version, about, long_about=None)]
 struct Args {
