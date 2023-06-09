@@ -5,7 +5,7 @@
 /* Literals */
 let greeting = "hello";
 let fraction = 0.5;
-let integer = 123;
+let int_eger = 123;
 /* Keywords com after
    this multiline comment */
 class else false fn for if null print return super this true let while

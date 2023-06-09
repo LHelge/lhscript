@@ -161,7 +161,7 @@ impl Scanner {
         let mut identifier = String::from(initial);
         for (curr, next) in self.by_ref() {
             identifier.push(curr);
-            if !next.is_some_and(|n|n.is_alphanumeric()) {
+            if !next.is_some_and(|n|n.is_alphanumeric() || n == '_') {
                 break;
             }
         }
@@ -329,14 +329,14 @@ mod tests {
         // Identifiers
         assert_eq!(tokens[24], TokenMetadata {token: Token::Identifier(String::from("greeting")), position: Position {line: 6, column: 5}});
         assert_eq!(tokens[29], TokenMetadata {token: Token::Identifier(String::from("fraction")), position: Position {line: 7, column: 5}});
-        assert_eq!(tokens[34], TokenMetadata {token: Token::Identifier(String::from("integer")),  position: Position {line: 8, column: 5}});
+        assert_eq!(tokens[34], TokenMetadata {token: Token::Identifier(String::from("int_eger")),  position: Position {line: 8, column: 5}});
 
         // String literal
         assert_eq!(tokens[26], TokenMetadata {token: Token::String(String::from("hello")), position: Position {line: 6, column: 16}});
 
         // Numbers
         assert_eq!(tokens[31], TokenMetadata {token: Token::Number(0.5f64), position: Position {line: 7, column: 16}});
-        assert_eq!(tokens[36], TokenMetadata {token: Token::Number(123f64), position: Position {line: 8, column: 15}});
+        assert_eq!(tokens[36], TokenMetadata {token: Token::Number(123f64), position: Position {line: 8, column: 16}});
     }
 
     #[test]
