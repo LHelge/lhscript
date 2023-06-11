@@ -8,13 +8,18 @@ use std::{
 mod context;
 use context::Context;
 
-mod error;
-use error::ScriptError;
+mod errors;
+use errors::ScriptError;
 
 mod scanner;
 use scanner::*;
 
 mod token;
+use token::*;
+
+mod ast;
+use ast::*;
+
 
 #[derive(Debug, clap::Parser)]
 #[command(author, version, about, long_about=None)]
@@ -43,6 +48,27 @@ fn main() {
         println!("Running prompt:");
         _ = run_prompt(context).expect("Error");
     }
+
+
+    // Temporary
+    let expr = Expression::Binary(BinaryExpression {
+        left: Box::new(Expression::Unary(UnaryExpression {
+            operator: Token::Minus,
+            right: Box::new(Expression::Literal(LiteralExpression { 
+                literal: Token::Number(123f64) 
+            })),
+        })),
+        operator: Token::Star,
+        right: Box::new(Expression::Grouping(GroupingExpression { 
+            group: Box::new(Expression::Literal(LiteralExpression { 
+                literal: Token::Number(45.67f64),
+            })),
+        })),
+    });
+
+    let printer = AstPrinter;
+    let exp = printer.print(expr).unwrap();
+    println!("AST-test: {}", exp);
 }
 
 fn run_file(path: PathBuf, mut context: Context) -> Result<Context, ScriptError> {

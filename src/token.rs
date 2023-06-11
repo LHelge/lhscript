@@ -53,7 +53,6 @@ pub enum Token {
     Eof,
 }
 
-
 #[derive(Debug, PartialEq)]
 pub struct TokenMetadata {
     pub token: Token,

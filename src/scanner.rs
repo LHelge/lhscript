@@ -1,24 +1,7 @@
 use crate::token::*;
-use std::{error::Error, fmt::Display};
+use std::{fmt::Display};
+use crate::errors::ScannerError;
 
-#[derive(Debug)]
-pub enum ScannerError {
-    UnexpectedToken(Position),
-    NumberLiteralParsingError(Position),
-    UnterminatedMultilineComment(Position),
-}
-
-impl Display for ScannerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnexpectedToken(position) => write!(f, "Unexpected token at {}", position),
-            Self::NumberLiteralParsingError(position) => write!(f, "Error parsing number at {}", position),
-            Self::UnterminatedMultilineComment(position) => write!(f, "Unterminated multiline comment at {}", position),
-        }
-    }
-}
-
-impl Error for ScannerError {}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position {
