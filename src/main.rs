@@ -20,6 +20,8 @@ use token::*;
 mod ast;
 use ast::*;
 
+mod parser;
+
 
 #[derive(Debug, clap::Parser)]
 #[command(author, version, about, long_about=None)]
@@ -34,6 +36,36 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+
+        // Temporary
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Unary(UnaryExpression {
+                operator: Token::Minus,
+                right: Box::new(Expression::Literal(LiteralExpression { 
+                    literal: Token::Number(123f64) 
+                })),
+            })),
+            operator: Token::Star,
+            right: Box::new(Expression::Grouping(GroupingExpression { 
+                group: Box::new(Expression::Literal(LiteralExpression { 
+                    literal: Token::Number(45.67f64),
+                })),
+            })),
+        });
+    
+        let printer = AstPrinter;
+        let exp = printer.print(expr).unwrap();
+        println!("AST-test: {}", exp);
+    
+        let tokens = "1 * (2 + 3)".tokens().unwrap();
+        println!("Tokens: {:?}", tokens);
+        let mut parser = parser::Parser::new(tokens);
+        let expr = parser.parse().unwrap();
+        println!("Expression: {:?}", expr);
+        let exp = printer.print(expr).unwrap();
+        println!("AST-printer: {}", exp);
+
 
     let mut context = Context::new();
 
@@ -50,25 +82,8 @@ fn main() {
     }
 
 
-    // Temporary
-    let expr = Expression::Binary(BinaryExpression {
-        left: Box::new(Expression::Unary(UnaryExpression {
-            operator: Token::Minus,
-            right: Box::new(Expression::Literal(LiteralExpression { 
-                literal: Token::Number(123f64) 
-            })),
-        })),
-        operator: Token::Star,
-        right: Box::new(Expression::Grouping(GroupingExpression { 
-            group: Box::new(Expression::Literal(LiteralExpression { 
-                literal: Token::Number(45.67f64),
-            })),
-        })),
-    });
 
-    let printer = AstPrinter;
-    let exp = printer.print(expr).unwrap();
-    println!("AST-test: {}", exp);
+
 }
 
 fn run_file(path: PathBuf, mut context: Context) -> Result<Context, ScriptError> {

@@ -35,6 +35,7 @@ impl ExpressionVisitor<String> for AstPrinter {
     fn visit_binary(&self, expr: &BinaryExpression) -> Result<String, ScriptError> {
         let name = match &expr.operator {
             Token::Plus => "+",
+            Token::Minus => "-",
             Token::Star => "*",
             _ => return Err(ScriptError::AstPrinterError),
         };

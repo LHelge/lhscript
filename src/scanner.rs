@@ -103,14 +103,16 @@ impl Scanner {
     }
 
     /// Scan a number literal from current position
-    fn scan_number_literal(&mut self, initial: char) -> Result<Token, ScannerError> {
+    fn scan_number_literal(&mut self, curr: char, next: Option<char>) -> Result<Token, ScannerError> {
         let position = self.position;
 
-        let mut number = String::from(initial);
-        for (curr, next) in self.by_ref() {
-            number.push(curr);
-            if !next.is_some_and(|n|n.is_numeric() || n == '.') {
-                break;
+        let mut number = String::from(curr);
+        if next.is_some_and(|n| n.is_numeric() || n == '.') {
+            for (curr, next) in self.by_ref() {
+                number.push(curr);
+                if !next.is_some_and(|n|n.is_numeric() || n == '.') {
+                    break;
+                }
             }
         }
 
@@ -187,7 +189,7 @@ impl Scanner {
 
                 // Comments
                 ('/', Some('/')) => {self.scan_line_comment()?; None},
-                ('/', Some('*')) => {self.scan_multiline_comment()?; None}
+                ('/', Some('*')) => {self.scan_multiline_comment()?; None},
 
                 // Single character tokens
                 ('(', _) => Some(Token::LeftParenthesis),
@@ -220,7 +222,7 @@ impl Scanner {
                 _ if curr.is_alphabetic() => Some(self.scan_keyword_or_identifier(curr)?),
 
                 // Number literals
-                _ if curr.is_numeric() => Some(self.scan_number_literal(curr)?),
+                _ if curr.is_numeric() => Some(self.scan_number_literal(curr, next)?),
 
                 // String literals
                 ('"', _) => Some(self.scan_string_literal()?),
@@ -313,6 +315,7 @@ mod tests {
         assert_eq!(tokens[24], TokenMetadata {token: Token::Identifier(String::from("greeting")), position: Position {line: 6, column: 5}});
         assert_eq!(tokens[29], TokenMetadata {token: Token::Identifier(String::from("fraction")), position: Position {line: 7, column: 5}});
         assert_eq!(tokens[34], TokenMetadata {token: Token::Identifier(String::from("int_eger")),  position: Position {line: 8, column: 5}});
+        assert_eq!(tokens[39], TokenMetadata {token: Token::Identifier(String::from("index")),  position: Position {line: 9, column: 5}});
 
         // String literal
         assert_eq!(tokens[26], TokenMetadata {token: Token::String(String::from("hello")), position: Position {line: 6, column: 16}});
@@ -320,6 +323,7 @@ mod tests {
         // Numbers
         assert_eq!(tokens[31], TokenMetadata {token: Token::Number(0.5f64), position: Position {line: 7, column: 16}});
         assert_eq!(tokens[36], TokenMetadata {token: Token::Number(123f64), position: Position {line: 8, column: 16}});
+        assert_eq!(tokens[41], TokenMetadata {token: Token::Number(0f64), position: Position {line: 9, column: 13}});
     }
 
     #[test]
@@ -327,27 +331,27 @@ mod tests {
         let tokens = test_tokens();
 
         // Identifiers
-        assert_eq!(tokens[38], TokenMetadata {token: Token::Class,  position: Position {line: 11, column: 1}});
-        assert_eq!(tokens[39], TokenMetadata {token: Token::Else,   position: Position {line: 11, column: 7}});
-        assert_eq!(tokens[40], TokenMetadata {token: Token::False,  position: Position {line: 11, column: 12}});
-        assert_eq!(tokens[41], TokenMetadata {token: Token::Fn,     position: Position {line: 11, column: 18}});
-        assert_eq!(tokens[42], TokenMetadata {token: Token::For,    position: Position {line: 11, column: 21}});
-        assert_eq!(tokens[43], TokenMetadata {token: Token::If,     position: Position {line: 11, column: 25}});
-        assert_eq!(tokens[44], TokenMetadata {token: Token::Null,   position: Position {line: 11, column: 28}});
-        assert_eq!(tokens[45], TokenMetadata {token: Token::Print,  position: Position {line: 11, column: 33}});
-        assert_eq!(tokens[46], TokenMetadata {token: Token::Return, position: Position {line: 11, column: 39}});
-        assert_eq!(tokens[47], TokenMetadata {token: Token::Super,  position: Position {line: 11, column: 46}});
-        assert_eq!(tokens[48], TokenMetadata {token: Token::This,   position: Position {line: 11, column: 52}});
-        assert_eq!(tokens[49], TokenMetadata {token: Token::True,   position: Position {line: 11, column: 57}});
-        assert_eq!(tokens[50], TokenMetadata {token: Token::Let,    position: Position {line: 11, column: 62}});
-        assert_eq!(tokens[51], TokenMetadata {token: Token::While,  position: Position {line: 11, column: 66}});
+        assert_eq!(tokens[43], TokenMetadata {token: Token::Class,  position: Position {line: 12, column: 1}});
+        assert_eq!(tokens[44], TokenMetadata {token: Token::Else,   position: Position {line: 12, column: 7}});
+        assert_eq!(tokens[45], TokenMetadata {token: Token::False,  position: Position {line: 12, column: 12}});
+        assert_eq!(tokens[46], TokenMetadata {token: Token::Fn,     position: Position {line: 12, column: 18}});
+        assert_eq!(tokens[47], TokenMetadata {token: Token::For,    position: Position {line: 12, column: 21}});
+        assert_eq!(tokens[48], TokenMetadata {token: Token::If,     position: Position {line: 12, column: 25}});
+        assert_eq!(tokens[49], TokenMetadata {token: Token::Null,   position: Position {line: 12, column: 28}});
+        assert_eq!(tokens[50], TokenMetadata {token: Token::Print,  position: Position {line: 12, column: 33}});
+        assert_eq!(tokens[51], TokenMetadata {token: Token::Return, position: Position {line: 12, column: 39}});
+        assert_eq!(tokens[52], TokenMetadata {token: Token::Super,  position: Position {line: 12, column: 46}});
+        assert_eq!(tokens[53], TokenMetadata {token: Token::This,   position: Position {line: 12, column: 52}});
+        assert_eq!(tokens[54], TokenMetadata {token: Token::True,   position: Position {line: 12, column: 57}});
+        assert_eq!(tokens[55], TokenMetadata {token: Token::Let,    position: Position {line: 12, column: 62}});
+        assert_eq!(tokens[56], TokenMetadata {token: Token::While,  position: Position {line: 12, column: 66}});
     }
 
     #[test]
     fn eof() {
         let tokens = test_tokens();
 
-        assert_eq!(tokens.last(), Some(&TokenMetadata {token: Token::Eof, position: Position {line: 11, column: 71}}));
+        assert_eq!(tokens.last(), Some(&TokenMetadata {token: Token::Eof, position: Position {line: 12, column: 71}}));
     }
 
     #[test]
