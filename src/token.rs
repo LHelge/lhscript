@@ -1,6 +1,6 @@
 use crate::scanner::Position;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     // Single character tokens
     LeftParenthesis,

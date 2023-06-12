@@ -3,6 +3,7 @@ use crate::errors::ScriptError;
 
 macro_rules! define_ast_types {
     ($($enum:ident, $name:ident, $visit:ident { $($prop_name:ident: $prop_type:ty),* },)*) => {
+        #[derive(Debug, PartialEq)]
         pub enum Expression {
             $(
                 $enum($name),
@@ -26,6 +27,7 @@ macro_rules! define_ast_types {
         }
 
         $(
+            #[derive(Debug, PartialEq)]
             pub struct $name {
                 $(
                     pub $prop_name: $prop_type,

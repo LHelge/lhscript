@@ -6,6 +6,7 @@
 let greeting = "hello";
 let fraction = 0.5;
 let int_eger = 123;
+let index = 0;
 /* Keywords com after
    this multiline comment */
 class else false fn for if null print return super this true let while

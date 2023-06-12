@@ -71,6 +71,8 @@ impl Error for ScannerError {}
 
 #[derive(Debug)]
 pub enum ParserError {
+    Unexpected,
+    Consume
 }
 
 impl Display for ParserError {
