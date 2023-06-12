@@ -189,7 +189,7 @@ impl Scanner {
 
                 // Comments
                 ('/', Some('/')) => {self.scan_line_comment()?; None},
-                ('/', Some('*')) => {self.scan_multiline_comment()?; None}
+                ('/', Some('*')) => {self.scan_multiline_comment()?; None},
 
                 // Single character tokens
                 ('(', _) => Some(Token::LeftParenthesis),

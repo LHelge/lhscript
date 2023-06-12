@@ -20,6 +20,7 @@ pub struct Parser {
 }
 
 impl Parser {
+    /// Create new parser with a list of tokens
     pub fn new(tokens: Vec<TokenMetadata>) -> Self {
         Parser { 
             tokens, 
@@ -27,10 +28,12 @@ impl Parser {
         }
     }
 
+    /// Check is parser is at end of file
     fn is_at_end(&self) -> bool {
         self.peek().is_some_and(|t| t.token == Token::Eof)
     }
 
+    /// Check if parsers current position is on a specific token
     fn check(&self, token_type: &Token) -> bool {
         if self.is_at_end() {
             false
@@ -39,6 +42,8 @@ impl Parser {
         }
     }
 
+    /// Check if token at current position matches a set of token types
+    /// If so, advance pointer
     fn matches(&mut self, types: &[Token]) -> bool {
         for token in types {
             if self.check(token) {
@@ -47,26 +52,30 @@ impl Parser {
             }
         }
 
-        return false;
+        false
     }
 
+    /// Advance token pointer one step and return previous
     fn advance(&mut self) -> Option<&TokenMetadata> {
         self.current += 1;
         self.previous()
     }
 
+    /// Peek at the character on the current pointer position
     fn peek(&self) -> Option<&TokenMetadata> {
         self.tokens.get(self.current)
     }
 
+    /// Get the token at the previous pointer position
     fn previous(&self) -> Option<&TokenMetadata> {
         if self.current == 0 {
             None
         } else {
-            self.tokens.get(self.current)
+            self.tokens.get(self.current-1)
         }
     }
 
+    /// Consume a specific token at the current position and move forward one step
     fn consume(&mut self, token: &Token) -> Result<(), ParserError> {
         if self.check(token) {
             self.advance();
@@ -76,6 +85,7 @@ impl Parser {
         }
     }
 
+    /// Synchronize to next statement
     // fn synchronize(&mut self) {
     //     self.advance();
 
@@ -97,15 +107,17 @@ impl Parser {
     //     }
     // }
 
-
+    /// Parse the next expression
     pub fn parse(&mut self) -> Result<Expression,ParserError> {
         self.expression()
     }
 
+    /// get an expression on the current pointer
     fn expression(&mut self) -> Result<Expression, ParserError> {
         self.equality()
     }
 
+    /// Try to parse an equality statement on the current position
     fn equality(&mut self) -> Result<Expression, ParserError> {
         let mut expression = self.comparison()?;
 
@@ -122,6 +134,7 @@ impl Parser {
         Ok(expression)
     }
 
+    /// Try to parse a comparison on the current position of the pointer
     fn comparison(&mut self) -> Result<Expression, ParserError> {
         let mut expression = self.term()?;
 
@@ -138,6 +151,7 @@ impl Parser {
         Ok(expression)
     }
 
+    /// Try to parse terms on the current position of the pointer
     fn term(&mut self) -> Result<Expression, ParserError> {
         let mut expression = self.factor()?;
 
@@ -154,6 +168,7 @@ impl Parser {
         Ok(expression)
     }
 
+    /// Try to parse factor on the current position of the pointer
     fn factor(&mut self) -> Result<Expression, ParserError> {
         let mut expression = self.unary()?;
 
@@ -170,6 +185,7 @@ impl Parser {
         Ok(expression)
     }
 
+    /// Try to parse unary on the current position of the pointer
     fn unary(&mut self) -> Result<Expression, ParserError> {
         if self.matches(&[Token::Bang, Token::Minus]) {
             let operator = self.previous().unwrap().token.clone();
@@ -183,6 +199,7 @@ impl Parser {
         self.primary()
     }
 
+    /// Try to parse a primary expression on the current position of the pointer
     fn primary(&mut self) -> Result<Expression, ParserError> {
         if self.matches(&[Token::False]) {
             return Ok(Expression::Literal(LiteralExpression{ literal: Token::False}));
@@ -207,9 +224,10 @@ impl Parser {
         }
 
         if self.matches(&[Token::LeftParenthesis]) {
+            let expression = self.expression()?;
             self.consume(&Token::RightParenthesis)?;
             return Ok(Expression::Grouping(GroupingExpression {
-                group: Box::new(self.expression()?)
+                group: Box::new(expression)
             }))
         }
 
@@ -221,17 +239,21 @@ impl Parser {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::scanner::Scannable;
+    use crate::{scanner::Scannable, ast::AstPrinter};
     use super::*;
 
 
     #[test]
     fn basic() {
         let tokens =  "2*(4-1.123)".tokens().unwrap();
+        
         let mut parser = Parser::new(tokens);
-
         let exp = parser.expression().unwrap();
 
-        assert_eq!(exp, Expression::Literal(LiteralExpression { literal: Token::Number(2f64) }));
+
+        let printer = AstPrinter;
+        let exp_str = printer.print(exp).unwrap();
+
+        assert_eq!(exp_str, "(* 2 (group (- 4 1.123)))");
     }
 }
